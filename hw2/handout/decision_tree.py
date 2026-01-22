@@ -22,7 +22,7 @@ class Node:
         self.prior_split = prior_split
         self.prior_split_value = prior_split_value
 
-        num_0_under, num_1_under = count_ones_and_zeroes(data, get_last_column(data))
+        num_0_under, num_1_under = count_ones_and_zeroes(data, data.dtype.names[-1])
         self.num_0_under = num_0_under
         self.num_1_under = num_1_under
 
@@ -145,10 +145,10 @@ def train_decision_tree(data, label_column_name, current_depth, maximum_depth, u
 
     used_split_set.add(best_mutual_information_column) 
 
-    newNode = Node(best_mutual_information_column, None, current_depth, prior_split, prior_split_value) 
+    newNode = Node(best_mutual_information_column, None, current_depth, prior_split, prior_split_value, data) 
     X_0, X_1 = split(data, best_mutual_information_column)
-    newNode.left = train_decision_tree(X_0, label_column_name, current_depth + 1, maximum_depth, used_split_set, best_mutual_information_column, 0, X_0)
-    newNode.right = train_decision_tree(X_1, label_column_name, current_depth + 1, maximum_depth, used_split_set, best_mutual_information_column, 1, X_1) 
+    newNode.left = train_decision_tree(X_0, label_column_name, current_depth + 1, maximum_depth, used_split_set, best_mutual_information_column, 0)
+    newNode.right = train_decision_tree(X_1, label_column_name, current_depth + 1, maximum_depth, used_split_set, best_mutual_information_column, 1) 
 
     used_split_set.remove(best_mutual_information_column)
 
@@ -250,22 +250,29 @@ def write_outputs_and_metrics(args,
         self.prior_split = prior_split
         self.prior_split_value = prior_split_value
 
-        num_0_under, num_1_under = count_ones_and_zeroes(data, get_last_column(data))
+        num_0_under, num_1_under = count_ones_and_zeroes(data, data.dtype.names[-1])
         self.num_0_under = num_0_under
         self.num_1_under = num_1_under
 """
-def print_tree(node):
+def print_tree(node, tree_file):
+    if node is None: 
+        return
+
     depth_indicator_string = "| " * node.depth 
 
     if node.prior_split is not None: 
         assert(node.prior_split_value is not None)
-        print(f"{depth_indicator_string}{node.prior_split} = {node.prior_split_value}: [{node.num_0_under} 0/{node.num_1_under} 1]")
+        tree_file.write(f"{depth_indicator_string}{node.prior_split} = {node.prior_split_value}: [{node.num_0_under} 0/{node.num_1_under} 1]\n")
     else: 
         assert(node.prior_split_value is None)
-        print(f"[{node.num_0_under} 0/{node.num_1_under} 1]")
+        tree_file.write(f"[{node.num_0_under} 0/{node.num_1_under} 1]\n")
 
-    print_tree(node.left)
-    print_tree(node.right)
+    print_tree(node.left, tree_file)
+    print_tree(node.right, tree_file)
+
+def print_tree_to_file(node, file_name): 
+    with open(file_name, "w") as tree_file: 
+        print_tree(node, tree_file)
 
 
 if __name__ == '__main__':
@@ -304,6 +311,5 @@ if __name__ == '__main__':
     
     write_outputs_and_metrics(args, decision_tree)
 
-    #Here is a recommended way to print the tree to a file
-    # with open(print_out, "w") as file:
-    #     print_tree(dTree, file)
+    print_tree_to_file(decision_tree, args.print_out)
+
