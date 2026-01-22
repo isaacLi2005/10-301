@@ -274,8 +274,7 @@ def print_tree_to_file(node, file_name):
     with open(file_name, "w") as tree_file: 
         print_tree(node, tree_file)
 
-
-if __name__ == '__main__':
+def main():
     # This takes care of command line argument parsing for you!
     # To access a specific argument, simply access args.<argument name>.
     # For example, to get the train_input path, you can use `args.train_input`.
@@ -312,4 +311,9 @@ if __name__ == '__main__':
     write_outputs_and_metrics(args, decision_tree)
 
     print_tree_to_file(decision_tree, args.print_out)
+
+if __name__ == '__main__':
+    main()
+
+
 
