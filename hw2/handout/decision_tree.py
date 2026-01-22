@@ -1,4 +1,5 @@
 import argparse
+import numpy as np 
 
 class Node:
     '''
@@ -10,11 +11,27 @@ class Node:
         arguments as well
         - you may add any methods to the Node class if desired 
     '''
-    def __init__(self):
-        self.left = None
-        self.right = None
-        self.attr = None
-        self.vote = None
+    def __init__(self, attr, v):
+        self.attribute = attr 
+        self.left = None 
+        self.right = None 
+        self.vote = v
+
+class DataHolder: 
+    def __init__(self, args): 
+        self.train_input_data = np.genfromtxt(
+            args.train_input, 
+            delimiter = "\t", 
+            names = True, 
+            dtype = int
+        )
+
+        self.test_input_data = np.genfromtxt(
+            args.test_input, 
+            delimiter = "\t", 
+            names = True, 
+            dtype = int
+        )
     
 def print_tree(node):
     pass
@@ -40,6 +57,8 @@ if __name__ == '__main__':
     
     #Here's an example of how to use argparse
     print_out = args.print_out
+
+    data_holder = DataHolder(args) 
 
     #Here is a recommended way to print the tree to a file
     # with open(print_out, "w") as file:
