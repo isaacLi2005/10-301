@@ -239,8 +239,34 @@ def write_outputs_and_metrics(args,
         metrics_out_file.write(f"error(train): {train_error_rate}\n")
         metrics_out_file.write(f"error(test): {test_error_rate}\n")
 
+"""
+    def __init__(self, attr, v, d, prior_split, prior_split_value, data):
+        self.attribute = attr 
+        self.left = None 
+        self.right = None 
+        self.vote = v
+
+        self.depth = d
+        self.prior_split = prior_split
+        self.prior_split_value = prior_split_value
+
+        num_0_under, num_1_under = count_ones_and_zeroes(data, get_last_column(data))
+        self.num_0_under = num_0_under
+        self.num_1_under = num_1_under
+"""
 def print_tree(node):
-    pass
+    depth_indicator_string = "| " * node.depth 
+
+    if node.prior_split is not None: 
+        assert(node.prior_split_value is not None)
+        print(f"{depth_indicator_string}{node.prior_split} = {node.prior_split_value}: [{node.num_0_under} 0/{node.num_1_under} 1]")
+    else: 
+        assert(node.prior_split_value is None)
+        print(f"[{node.num_0_under} 0/{node.num_1_under} 1]")
+
+    print_tree(node.left)
+    print_tree(node.right)
+
 
 if __name__ == '__main__':
     # This takes care of command line argument parsing for you!
