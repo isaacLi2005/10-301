@@ -12,11 +12,19 @@ class Node:
         arguments as well
         - you may add any methods to the Node class if desired 
     '''
-    def __init__(self, attr, v):
+    def __init__(self, attr, v, d, prior_split, prior_split_value, data):
         self.attribute = attr 
         self.left = None 
         self.right = None 
         self.vote = v
+
+        self.depth = d
+        self.prior_split = prior_split
+        self.prior_split_value = prior_split_value
+
+        num_0_under, num_1_under = count_ones_and_zeroes(data, get_last_column(data))
+        self.num_0_under = num_0_under
+        self.num_1_under = num_1_under
 
 class DataHolder: 
     def __init__(self, args): 
@@ -100,20 +108,20 @@ def find_majority_vote(data, label_column_name):
     else: 
         return 0 
 
-def train_decision_tree(data, label_column_name, current_depth, maximum_depth, used_split_set): 
+def train_decision_tree(data, label_column_name, current_depth, maximum_depth, used_split_set, prior_split, prior_split_value): 
     """
     Recursively builds a decision tree. 
     """
 
-    if current_depth > maximum_depth: 
+    if current_depth >= maximum_depth: 
         majority_vote = find_majority_vote(data, label_column_name)
-        return Node(None, majority_vote)
+        return Node(None, majority_vote, current_depth, prior_split, prior_split_value, data)
     
     num_0, num_1 = count_ones_and_zeroes(data, label_column_name) 
     if num_0 == 0: 
-        return Node(None, 1) 
+        return Node(None, 1, current_depth, prior_split, prior_split_value, data) 
     elif num_1 == 0: 
-        return Node(None, 0)
+        return Node(None, 0, current_depth, prior_split, prior_split_value, data)
 
     best_mutual_information_column = None 
     best_mutual_information_value = None 
@@ -133,14 +141,14 @@ def train_decision_tree(data, label_column_name, current_depth, maximum_depth, u
                     best_mutual_information_column = feature_column_name
 
     if best_mutual_information_column is None: 
-        return Node(None, find_majority_vote(data)) 
+        return Node(None, find_majority_vote(data, label_column_name), current_depth, prior_split, prior_split_value, data) 
 
     used_split_set.add(best_mutual_information_column) 
 
-    newNode = Node(best_mutual_information_column, None) 
+    newNode = Node(best_mutual_information_column, None, current_depth, prior_split, prior_split_value) 
     X_0, X_1 = split(data, best_mutual_information_column)
-    newNode.left = train_decision_tree(X_0, label_column_name, current_depth + 1, maximum_depth, used_split_set)
-    newNode.right = train_decision_tree(X_1, label_column_name, current_depth + 1, maximum_depth, used_split_set) 
+    newNode.left = train_decision_tree(X_0, label_column_name, current_depth + 1, maximum_depth, used_split_set, best_mutual_information_column, 0, X_0)
+    newNode.right = train_decision_tree(X_1, label_column_name, current_depth + 1, maximum_depth, used_split_set, best_mutual_information_column, 1, X_1) 
 
     used_split_set.remove(best_mutual_information_column)
 
@@ -148,7 +156,7 @@ def train_decision_tree(data, label_column_name, current_depth, maximum_depth, u
         
 def predict_example(node, example): 
     if node.vote is not None: 
-        return Node.vote 
+        return node.vote 
 
     split_value = example[node.attribute]
     if split_value == 0: 
@@ -164,15 +172,72 @@ def predict_file(node, file_name):
         dtype = int 
     )
 
-    file_data_without_labels = file_data[:, -1]
-
     output_list = []
-    for row in file_data_without_labels: 
+    for row in file_data: 
         prediction = predict_example(node, row) 
         output_list.append(prediction) 
     
     return output_list
 
+def get_last_column(array): 
+    """
+    Finds and returns the last column of a numpy array, assuming its named. 
+    """
+    return array[array.dtype.names[-1]]
+
+def write_outputs_and_metrics(args, 
+                              node): 
+    """
+    Writes the output .txt files for the training data and testing data. 
+    """
+    training_predictions = predict_file(node, args.train_input)
+    testing_predictions = predict_file(node, args.test_input) 
+
+    # Writing the raw outputs. 
+    with open(args.train_out, "w") as train_out_file: 
+        for training_prediction in training_predictions: 
+            train_out_file.write(f"{training_prediction}\n")
+    with open(args.test_out, "w") as test_out_file: 
+        for testing_prediction in testing_predictions: 
+            test_out_file.write(f"{testing_prediction}\n")
+
+
+    # Calculating the error rate. 
+    training_data = np.genfromtxt(
+        args.train_input, 
+        delimiter = "\t", 
+        names = True, 
+        dtype = int
+    )
+    testing_data = np.genfromtxt(
+        args.test_input, 
+        delimiter = "\t", 
+        names = True, 
+        dtype = int
+    )
+
+    train_labels_column = get_last_column(training_data)
+    test_labels_column = get_last_column(testing_data)
+
+    assert(len(train_labels_column) == len(training_predictions))
+    assert(len(test_labels_column) == len(testing_predictions))
+
+    train_incorrect = 0 
+    test_incorrect = 0
+
+    for i in range(len(train_labels_column)): 
+        if training_predictions[i] != train_labels_column[i]: 
+            train_incorrect += 1 
+    for i in range(len(test_labels_column)): 
+        if testing_predictions[i] != test_labels_column[i]: 
+            test_incorrect += 1
+    
+    train_error_rate = train_incorrect / len(train_labels_column) 
+    test_error_rate = test_incorrect / len(test_labels_column) 
+
+    with open(args.metrics_out, "w") as metrics_out_file: 
+        metrics_out_file.write(f"error(train): {train_error_rate}\n")
+        metrics_out_file.write(f"error(test): {test_error_rate}\n")
 
 def print_tree(node):
     pass
@@ -203,11 +268,15 @@ if __name__ == '__main__':
 
     decision_tree = train_decision_tree(
             data_holder.train_input_data, 
-            data_holder.train_input_data.dytpe.names[-1], 
+            data_holder.train_input_data.dtype.names[-1], 
             0,
             args.max_depth, 
-            set()
+            set(), 
+            None, 
+            None
         )
+    
+    write_outputs_and_metrics(args, decision_tree)
 
     #Here is a recommended way to print the tree to a file
     # with open(print_out, "w") as file:
