@@ -1,5 +1,6 @@
 import argparse
 import numpy as np 
+import math
 
 class Node:
     '''
@@ -32,7 +33,28 @@ class DataHolder:
             names = True, 
             dtype = int
         )
+
+def calculate_column_entropy(data, column_name): 
+    column = data[column_name]
+    num_rows = column.shape[0]
+
+    count_dict = dict() 
+    for value in column: 
+        if value not in count_dict: 
+            count_dict[value] = 1 
+        else: 
+            count_dict[value] += 1 
     
+    entropy = 0
+    for value in count_dict: 
+        proportion = count_dict[value] / num_rows
+
+        entropy += proportion * math.log2(proportion)
+    
+    entropy *= -1 
+
+    return entropy
+
 def print_tree(node):
     pass
 
