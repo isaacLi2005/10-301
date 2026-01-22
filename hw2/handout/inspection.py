@@ -96,6 +96,6 @@ if __name__ == "__main__":
 
 
 """
-0.4020618556701031 errir on heart
+0.4020618556701031 error on heart
 0.36 error on purchase
 """
