@@ -38,22 +38,58 @@ def calculate_column_entropy(data, column_name):
     column = data[column_name]
     num_rows = column.shape[0]
 
-    count_dict = dict() 
-    for value in column: 
-        if value not in count_dict: 
-            count_dict[value] = 1 
-        else: 
-            count_dict[value] += 1 
+    num_0, num_1 = count_ones_and_zeroes(data, column_name)
     
     entropy = 0
-    for value in count_dict: 
-        proportion = count_dict[value] / num_rows
 
-        entropy += proportion * math.log2(proportion)
+    proportion_0 = num_0 / num_rows
+    entropy += proportion_0 * math.log2(proportion_0)
+
+    proportion_1 = num_1 / num_rows 
+    entropy += proportion_1 * math.log2(proportion_1)
     
     entropy *= -1 
 
     return entropy
+
+def split(data, column_name): 
+    X_0 = data[data[column_name] == 0]
+    X_1 = data[data[column_name] == 1]
+
+    return X_0, X_1
+
+def count_ones_and_zeroes(data, column_name): 
+    num_0 = 0 
+    num_1 = 0 
+
+    data_column = data[column_name] 
+    for elem in data_column: 
+        assert(elem == 0 or elem == 1)
+        if elem == 0: 
+            num_0 += 1 
+        else:
+            num_1 += 1
+    
+    return num_0, num_1
+
+
+def calculate_mutual_information(data, label_column_name, conditional_column_name): 
+    HY = calculate_column_entropy(data, label_column_name) 
+
+    X_0, X_1 = split(data, conditional_column_name)
+
+    conditional_num_0, conditional_num_1 = count_ones_and_zeroes(data, conditional_column_name)
+    total = data.shape[0]
+
+    HYX0 = (conditional_num_0 / total) * calculate_column_entropy(X_0, label_column_name) 
+    HYX1 = (conditional_num_1 / total) * calculate_column_entropy(X_1, label_column_name)
+
+    HYX = HYX0 + HYX1 
+
+    mutual_information = HY - HYX 
+
+    return mutual_information 
+
 
 def print_tree(node):
     pass
