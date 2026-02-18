@@ -28,7 +28,7 @@ def load_tsv_dataset(file: str) -> np.ndarray:
     return dataset
 
 
-def load_feature_dictionary(file: str) -> np.ndarray:
+def load_feature_dictionary(file: str) -> dict[str, np.ndarray]:
     """
     Creates a map of words to vectors using the file that has the glove
     embeddings.
@@ -83,6 +83,17 @@ def feature_to_output_line(label: int, features: np.ndarray) -> str:
 
     return result 
 
+def featurize_dataset(input_path: str, glove_map: dict[str, np.ndarray], output_path: str,) -> None: 
+    """
+    Takes in the path of to input data and a glove map and writes the vectorized dataset to the output path. 
+    """
+    dataset = load_tsv_dataset(input_path) 
+
+    with open(output_path, "w") as f: 
+        for (label, review) in dataset: 
+            feature_vector = turn_review_line_to_vector(review, glove_map)
+            new_output_line = feature_to_output_line(label, feature_vector)
+            f.write(new_output_line)
 
 
 
@@ -104,4 +115,10 @@ if __name__ == '__main__':
                         help='path to output .tsv file to which the feature extractions on the test data should be written')
     args = parser.parse_args()
 
-    print("Hello world!")
+    
+
+    glove_map = load_feature_dictionary(args.feature_dictionary_in)
+
+    featurize_dataset(args.train_input, glove_map, args.train_out)
+    featurize_dataset(args.validation_input, glove_map, args.validation_out)
+    featurize_dataset(args.test_input, glove_map, args.test_out) 
