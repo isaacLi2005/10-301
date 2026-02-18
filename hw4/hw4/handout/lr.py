@@ -1,8 +1,12 @@
 import numpy as np
 import argparse
 
+VECTOR_LEN = 300   # Length of glove vector
+MAX_WORD_LEN = 64  # Max word length in dict.txt and glove_embeddings.txt
 
-def sigmoid(x : np.ndarray):
+
+
+def sigmoid(x : np.ndarray) -> np.ndarray:
     """
     Implementation of the sigmoid function.
 
@@ -15,6 +19,20 @@ def sigmoid(x : np.ndarray):
     """
     e = np.exp(x)
     return e / (1 + e)
+
+def initialize_feature_vector() -> np.ndarray:
+    """
+    Initializes a vector representing omega with all zeroes. 
+    The vector is of dimension (301, ), one intercept and the 300 glove terms. 
+    """
+    return np.array([0 for _ in range(1 + VECTOR_LEN)])
+
+def fold_intercept_into_feature_vector(x: np.ndarray) -> np.ndarray: 
+    """
+    Takes a ndarray that is VECTOR_LEN long and returns one that is 
+    1 + VECTOR_LEN long with a intercept 1 in prepended. 
+    """
+    return np.concat((np.array([1]), x), axis=0)
 
 
 def train(
