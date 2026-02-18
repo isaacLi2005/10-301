@@ -11,7 +11,7 @@ MAX_WORD_LEN = 64  # Max word length in dict.txt and glove_embeddings.txt
 ################################################################################
 
 
-def load_tsv_dataset(file):
+def load_tsv_dataset(file: str) -> np.ndarray:
     """
     Loads raw data and returns a tuple containing the reviews and their ratings.
 
@@ -28,7 +28,7 @@ def load_tsv_dataset(file):
     return dataset
 
 
-def load_feature_dictionary(file):
+def load_feature_dictionary(file: str) -> np.ndarray:
     """
     Creates a map of words to vectors using the file that has the glove
     embeddings.
@@ -48,6 +48,32 @@ def load_feature_dictionary(file):
             glove_map[word] = np.array(embedding, dtype=float)
     return glove_map
 
+def turn_review_line_to_vector(review: str, glove_map: dict[str, np.ndarray]) -> np.ndarray: 
+    """
+    Takes in one line of data, with the label and all the words attached, and turns it into a numpy array of the 
+    real valued weights. (Notably, the label will not be part of the output.)
+    """
+    words = review.split() 
+    words = [word.lower() for word in words]
+
+    trimmed_words = []
+    for word in words: 
+        if word in glove_map: 
+            trimmed_words.append(word)
+    
+    # If no words are used, return a vector of all zeroes. 
+    if len(trimmed_words) == 0: 
+        return np.array([0 for _ in range(VECTOR_LEN)])
+    
+    embedding_vectors = np.array([glove_map[word] for word in trimmed_words])
+    summed_total = embedding_vectors.sum(axis=0) 
+    averaged = (1 / len(trimmed_words)) * summed_total 
+
+    return averaged
+
+
+
+
 
 if __name__ == '__main__':
     # This takes care of command line argument parsing for you!
@@ -66,3 +92,5 @@ if __name__ == '__main__':
     parser.add_argument("test_out", type=str, 
                         help='path to output .tsv file to which the feature extractions on the test data should be written')
     args = parser.parse_args()
+
+    print("Hello world!")
