@@ -362,9 +362,9 @@ class NN:
 
         # initialize modules (see section 9.1.2 of the writeup)
         #  Hint: use the classes you've implemented above!
-        self.l1_linear = Linear(input_size, hidden_size, weight_init_fn, learning_rate) 
+        self.linear1 = Linear(input_size, hidden_size, weight_init_fn, learning_rate) 
         self.l2_sigmoid = Sigmoid() 
-        self.l3_linear = Linear(hidden_size, output_size, weight_init_fn, learning_rate) 
+        self.linear2 = Linear(hidden_size, output_size, weight_init_fn, learning_rate) 
         self.l4_softmax = SoftMaxCrossEntropy() 
 
     def forward(self, x: np.ndarray, y: int) -> Tuple[np.ndarray, float]:
@@ -378,9 +378,9 @@ class NN:
                 a valid probability distribution over the classes.
             loss: the cross_entropy loss for a given example
         """
-        a = self.l1_linear.forward(x) 
+        a = self.linear1.forward(x) 
         z = self.l2_sigmoid.forward(a)
-        b = self.l3_linear.forward(z) 
+        b = self.linear2.forward(z) 
         y_hat, J = self.l4_softmax.forward(b, y)
 
         return y_hat, J
@@ -395,17 +395,17 @@ class NN:
         # call backward pass for each layer
         self.g_J = 1
         self.g_b = self.l4_softmax.backward(y, y_hat) 
-        self.g_z = self.l3_linear.backward(self.g_b)
+        self.g_z = self.linear2.backward(self.g_b)
         self.g_a = self.l2_sigmoid.backward(self.g_z)
-        self.g_x = self.l1_linear.backward(self.g_a) 
+        self.g_x = self.linear1.backward(self.g_a) 
 
     def step(self):
         """
         Apply SGD update to weights.
         """
         # call step for each relevant layer
-        self.l1_linear.step() 
-        self.l3_linear.step() 
+        self.linear1.step() 
+        self.linear2.step() 
 
     def compute_loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
