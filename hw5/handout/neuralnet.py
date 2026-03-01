@@ -117,7 +117,6 @@ def zero_init(shape):
 
 def random_init(shape):
     """
-
     RANDOM Initialization: The weights are initialized randomly from a uniform
         distribution from -0.1 to 0.1.
     
@@ -130,10 +129,9 @@ def random_init(shape):
     M, D = shape
     np.random.seed(M * D)  # Don't change this line!
 
-    # TODO: create the random matrix here!
     # Hint: numpy might have some useful function for this
     # Hint: make sure you have the right distribution
-    raise NotImplementedError
+    return np.random.uniform(-0.1, 0.1, shape)
 
 
 class SoftMaxCrossEntropy:
@@ -144,9 +142,12 @@ class SoftMaxCrossEntropy:
         :param z: input logits of shape (num_classes,)
         :return: softmax output of shape (num_classes,)
         """
-        # TODO: implement
-        raise NotImplementedError
 
+        numerators = np.power(np.e, z)
+        denominator = np.sum(numerators)
+        
+        return numerators / denominator
+    
     def _cross_entropy(self, y: int, y_hat: np.ndarray) -> float:
         """
         Compute cross entropy loss.
@@ -154,8 +155,8 @@ class SoftMaxCrossEntropy:
         :param y_hat: prediction with shape (num_classes,)
         :return: cross entropy loss
         """
-        # TODO: implement
-        raise NotImplementedError
+
+        return -1 * np.log(y_hat[y])
 
     def forward(self, z: np.ndarray, y: int) -> Tuple[np.ndarray, float]:
         """
@@ -166,8 +167,11 @@ class SoftMaxCrossEntropy:
             y: predictions from softmax as an np.ndarray
             loss: cross entropy loss
         """
-        # TODO: Call your implementations of _softmax and _cross_entropy here
-        raise NotImplementedError
+        
+        y_hat = self._softmax(z) 
+        cross_entropy_result = self._cross_entropy(y, y_hat) 
+
+        return y_hat, cross_entropy_result
 
     def backward(self, y: int, y_hat: np.ndarray) -> np.ndarray:
         """
@@ -183,8 +187,13 @@ class SoftMaxCrossEntropy:
         :param y_hat: predicted softmax probability with shape (num_classes,)
         :return: gradient with shape (num_classes,)
         """
-        # TODO: implement using the formula you derived in the written
-        raise NotImplementedError
+        
+        one_hot_y = np.zeros_like(y_hat)
+        one_hot_y[y] = 1 
+
+        gradient = y_hat - one_hot_y 
+
+        return gradient
 
 
 class Sigmoid:
