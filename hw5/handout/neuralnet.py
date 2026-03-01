@@ -392,15 +392,20 @@ class NN:
         :param y: label (a number or an array containing a single element)
         :param y_hat: prediction with shape (num_classes,)
         """
-        # TODO: call backward pass for each layer
-        raise NotImplementedError
+        # call backward pass for each layer
+        self.g_J = 1
+        self.g_b = self.l4_softmax.backward(y, y_hat) 
+        self.g_z = self.l3_linear.backward(self.g_b)
+        self.g_a = self.l2_sigmoid.backward(self.g_z)
+        self.g_x = self.l1_linear.backward(self.g_a) 
 
     def step(self):
         """
         Apply SGD update to weights.
         """
-        # TODO: call step for each relevant layer
-        raise NotImplementedError
+        # call step for each relevant layer
+        self.l1_linear.step() 
+        self.l3_linear.step() 
 
     def compute_loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -409,9 +414,17 @@ class NN:
         :param y: Input labels of shape (num_points,)
         :return: Mean cross entropy loss
         """
-        # TODO: compute loss over the entire dataset
+        # compute loss over the entire dataset
         #  Hint: reuse your forward function
-        raise NotImplementedError
+        result = 0.0 
+        N = X.shape[0]
+        for i in range(N): 
+            _, loss = self.forward(X[i], y[i])
+            result += loss
+        result /= N 
+
+        return result  
+        
 
     def train(self, X_tr: np.ndarray, y_tr: np.ndarray,
               X_test: np.ndarray, y_test: np.ndarray,
@@ -427,8 +440,26 @@ class NN:
             train_losses: Training losses *after* each training epoch
             test_losses: Test losses *after* each training epoch
         """
-        # TODO: train network
-        raise NotImplementedError
+        # train network
+        train_losses = [] 
+        test_losses = [] 
+
+        N = X_tr.shape[0]
+        assert(y_tr.shape[0] == N) 
+
+        for epoch_i in range(n_epochs): 
+            shuffled_X_tr, shuffled_y_tr = shuffle(X_tr, y_tr, epoch_i)
+
+            for i in range(N): 
+                y_hat, J = self.forward(shuffled_X_tr[i], shuffled_y_tr[i])
+
+                self.backward(shuffled_y_tr[i], y_hat)
+                self.step() 
+
+            train_losses.append(self.compute_loss(X_tr, y_tr))
+            test_losses.append(self.compute_loss(X_test, y_test))
+
+        return train_losses, test_losses 
 
     def test(self, X: np.ndarray, y: np.ndarray) -> Tuple[np.ndarray, float]:
         """
@@ -439,8 +470,22 @@ class NN:
             labels: predicted labels
             error_rate: prediction error rate
         """
-        # TODO: make predictions and compute error
-        raise NotImplementedError
+        # make predictions and compute error
+        N = X.shape[0]
+        assert(y.shape[0] == N) 
+
+        labels = [] 
+        incorrect = 0 
+        
+        for i in range(N): 
+            y_hat, J = self.forward(X[i], y[i]) 
+            prediction = np.argmax(y_hat) 
+
+            labels.append(prediction) 
+            if prediction != y[i]: 
+                incorrect += 1
+            
+        return np.array(labels), incorrect / N 
 
 
 if __name__ == "__main__":
