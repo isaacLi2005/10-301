@@ -381,7 +381,9 @@ class NN:
         a = self.l1_linear.forward(x) 
         z = self.l2_sigmoid.forward(a)
         b = self.l3_linear.forward(z) 
-        y_hat = self.l4_softmax.forward(b, y)
+        y_hat, J = self.l4_softmax.forward(b, y)
+
+        return y_hat, J
 
     def backward(self, y: int, y_hat: np.ndarray) -> None:
         """
