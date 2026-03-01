@@ -143,7 +143,7 @@ class SoftMaxCrossEntropy:
         :return: softmax output of shape (num_classes,)
         """
 
-        numerators = np.power(np.e, z)
+        numerators = np.exp(z)
         denominator = np.sum(numerators)
         
         return numerators / denominator
@@ -201,9 +201,9 @@ class Sigmoid:
         """
         Initialize state for sigmoid activation layer
         """
-        # TODO Initialize any additional values you may need to store for the
-        #  backward pass here
-        raise NotImplementedError
+        
+        self.x = None 
+        self.sigmoid_exponents = None
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """
@@ -213,9 +213,14 @@ class Sigmoid:
         :return: Output of sigmoid activation function with shape
             (output_size,)
         """
-        # TODO: perform forward pass and save any values you may need for
-        #  the backward pass
-        raise NotImplementedError
+        self.x = x 
+
+        denominator = np.exp(-1 * x) 
+        self.sigmoid_exponents = denominator.copy()
+        denominator += 1 
+
+        result = 1 / denominator 
+        return result 
 
     def backward(self, dz: np.ndarray) -> np.ndarray:
         """
@@ -224,8 +229,12 @@ class Sigmoid:
         :return: partial derivative of loss with respect to input of
             sigmoid activation
         """
-        # TODO: implement
-        raise NotImplementedError
+        assert(self.x is not None and self.sigmoid_exponents is not None) 
+        exponents = self.sigmoid_exponents
+        denominators = np.power((1 + exponents), 2) 
+
+        return dz * (exponents / denominators)
+
 
 
 # This refers to a function type that takes in a tuple of 2 integers (row, col)
@@ -249,25 +258,23 @@ class Linear:
         # Initialize learning rate for SGD
         self.lr = learning_rate
 
-        # TODO: Initialize weight matrix for this layer - since we are
+        # Initialize weight matrix for this layer - since we are
         #  folding the bias into the weight matrix, be careful about the
         #  shape you pass in.
         #  To be consistent with the formulas you derived in the written and
         #  in order for the unit tests to work correctly,
         #  the first dimension should be the output size
-        raise NotImplementedError 
-        self.w = ...
+        self.w = weight_init_fn((output_size, input_size + 1)) # + 1 to account for extra constant term. 
 
-        # TODO: set the bias terms to zero
-        raise NotImplementedError
+        # set the bias terms to zero
+        self.w[:, 0] = 0 
 
-        # TODO: Initialize matrix to store gradient with respect to weights
-        raise NotImplementedError
-        self.dw = ... 
+        # Initialize matrix to store gradient with respect to weights
+        self.dw = np.zeros_like(self.w)
 
-        # TODO: Initialize any additional values you may need to store for the
+        # Initialize any additional values you may need to store for the
         #  backward pass here
-        raise NotImplementedError
+        self.x = None 
 
     def forward(self, x: np.ndarray) -> np.ndarray:
         """
@@ -283,9 +290,17 @@ class Linear:
         function. Inspect your expressions for backprop to see which values
         should be cached.
         """
-        # TODO: perform forward pass and save any values you may need for
+        # perform forward pass and save any values you may need for
         #  the backward pass
-        raise NotImplementedError
+        self.x = x 
+
+        w_b = self.w[:, 0] 
+        w_n = self.w[:, 1:]
+
+        result = (w_n @ x) + w_b 
+
+        return result 
+        
 
     def backward(self, dz: np.ndarray) -> np.ndarray:
         """
@@ -302,16 +317,25 @@ class Linear:
         HINT: You may want to use some of the values you previously cached in 
         your forward() method.
         """
-        # TODO: implement
-        raise NotImplementedError
+        assert(self.x is not None) 
+        x_1 = np.concatenate(([1.0], self.x))
+        self.dw = np.outer(dz, x_1) 
+
+        w_n = self.w[:, 1:]
+
+        result = w_n.T @ dz 
+
+        return result 
+        
 
     def step(self) -> None:
         """
         Apply SGD update to weights using self.dw, which should have been 
         set in NN.backward().
         """
-        # TODO: implement
-        raise NotImplementedError
+        assert(self.dw is not None) 
+
+        self.w -= self.lr * self.dw 
 
 
 class NN:
@@ -336,9 +360,12 @@ class NN:
         self.hidden_size = hidden_size
         self.output_size = output_size
 
-        # TODO: initialize modules (see section 9.1.2 of the writeup)
+        # initialize modules (see section 9.1.2 of the writeup)
         #  Hint: use the classes you've implemented above!
-        raise NotImplementedError
+        self.l1_linear = Linear(input_size, hidden_size, weight_init_fn, learning_rate) 
+        self.l2_sigmoid = Sigmoid() 
+        self.l3_linear = Linear(hidden_size, output_size, weight_init_fn, learning_rate) 
+        self.l4_softmax = SoftMaxCrossEntropy() 
 
     def forward(self, x: np.ndarray, y: int) -> Tuple[np.ndarray, float]:
         """
@@ -351,8 +378,10 @@ class NN:
                 a valid probability distribution over the classes.
             loss: the cross_entropy loss for a given example
         """
-        # TODO: call forward pass for each layer
-        raise NotImplementedError
+        a = self.l1_linear.forward(x) 
+        z = self.l2_sigmoid.forward(a)
+        b = self.l3_linear.forward(z) 
+        y_hat = self.l4_softmax.forward(b, y)
 
     def backward(self, y: int, y_hat: np.ndarray) -> None:
         """
