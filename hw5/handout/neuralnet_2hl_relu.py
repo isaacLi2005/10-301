@@ -351,75 +351,45 @@ class ReLU:
         return dz * np.where(self.x < 0, 0, 1) 
 
 
-
 class NN:
     def __init__(self, input_size: int, hidden_size: int, output_size: int,
                  weight_init_fn: INIT_FN_TYPE, learning_rate: float):
-        """
-        Initalize neural network (NN) class. Note that this class is composed
-        of the layer objects (Linear, Sigmoid) defined above.
 
-        :param input_size: number of units in input to network
-        :param hidden_size: number of units in the hidden layer of the network
-        :param output_size: number of units in output of the network - this
-                            should be equal to the number of classes
-        :param weight_init_fn: function that creates and initializes weight 
-                               matrices for layer. This function takes in a 
-                               tuple (row, col) and returns a matrix with 
-                               shape row x col.
-        :param learning_rate: learning rate for SGD training updates
-        """
-        self.weight_init_fn = weight_init_fn
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
+        self.linear1 = Linear(input_size, hidden_size, weight_init_fn, learning_rate)
+        self.act1 = ReLU()
 
-        # initialize modules (see section 9.1.2 of the writeup)
-        #  Hint: use the classes you've implemented above!
-        self.linear1 = Linear(input_size, hidden_size, weight_init_fn, learning_rate) 
-        self.l2_sigmoid = Sigmoid() 
-        self.linear2 = Linear(hidden_size, output_size, weight_init_fn, learning_rate) 
-        self.l4_softmax = SoftMaxCrossEntropy() 
+        self.linear2 = Linear(hidden_size, hidden_size, weight_init_fn, learning_rate)
+        self.act2 = ReLU()
 
-    def forward(self, x: np.ndarray, y: int) -> Tuple[np.ndarray, float]:
-        """
-        Neural network forward computation. 
-        Follow the pseudocode!
-        :param x: input data point *without the bias folded in*
-        :param y: prediction with shape (num_classes,)
-        :return:
-            y_hat: output prediction with shape (num_classes,). This should be
-                a valid probability distribution over the classes.
-            loss: the cross_entropy loss for a given example
-        """
-        a = self.linear1.forward(x) 
-        z = self.l2_sigmoid.forward(a)
-        b = self.linear2.forward(z) 
-        y_hat, J = self.l4_softmax.forward(b, y)
+        self.linear3 = Linear(hidden_size, output_size, weight_init_fn, learning_rate)
+        self.softmax_ce = SoftMaxCrossEntropy()
 
-        return y_hat, J
+    def forward(self, x: np.ndarray, y: int):
+        a1 = self.linear1.forward(x)
+        z1 = self.act1.forward(a1)
+
+        a2 = self.linear2.forward(z1)
+        z2 = self.act2.forward(a2)
+
+        logits = self.linear3.forward(z2)
+        y_hat, loss = self.softmax_ce.forward(logits, y)
+        return y_hat, loss
 
     def backward(self, y: int, y_hat: np.ndarray) -> None:
-        """
-        Neural network backward computation.
-        Follow the pseudocode!
-        :param y: label (a number or an array containing a single element)
-        :param y_hat: prediction with shape (num_classes,)
-        """
-        # call backward pass for each layer
-        self.g_J = 1
-        self.g_b = self.l4_softmax.backward(y, y_hat) 
-        self.g_z = self.linear2.backward(self.g_b)
-        self.g_a = self.l2_sigmoid.backward(self.g_z)
-        self.g_x = self.linear1.backward(self.g_a) 
+        g_logits = self.softmax_ce.backward(y, y_hat)
+
+        g_z2 = self.linear3.backward(g_logits)
+        g_a2 = self.act2.backward(g_z2)
+
+        g_z1 = self.linear2.backward(g_a2)
+        g_a1 = self.act1.backward(g_z1)
+
+        _ = self.linear1.backward(g_a1)
 
     def step(self):
-        """
-        Apply SGD update to weights.
-        """
-        # call step for each relevant layer
-        self.linear1.step() 
-        self.linear2.step() 
+        self.linear1.step()
+        self.linear2.step()
+        self.linear3.step()
 
     def compute_loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

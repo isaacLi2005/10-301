@@ -337,18 +337,6 @@ class Linear:
 
         self.w -= self.lr * self.dw 
 
-class ReLU: 
-    def __init__(self): 
-        self.x = None 
-
-    def forward(self, x: np.ndarray): 
-        self.x = x 
-
-        return np.maximum(0, x) 
-    
-    def backward(self, dz: np.ndarray): 
-        assert(self.x is not None)
-        return dz * np.where(self.x < 0, 0, 1) 
 
 
 
@@ -376,10 +364,24 @@ class NN:
 
         # initialize modules (see section 9.1.2 of the writeup)
         #  Hint: use the classes you've implemented above!
+
+        """
         self.linear1 = Linear(input_size, hidden_size, weight_init_fn, learning_rate) 
         self.l2_sigmoid = Sigmoid() 
+
         self.linear2 = Linear(hidden_size, output_size, weight_init_fn, learning_rate) 
         self.l4_softmax = SoftMaxCrossEntropy() 
+        """
+        self.linear1 = Linear(input_size, hidden_size, weight_init_fn, learning_rate)
+        self.sigmoid1 = Sigmoid()
+
+        self.linear2 = Linear(hidden_size, hidden_size, weight_init_fn, learning_rate)  
+        self.sigmoid2 = Sigmoid()
+
+        self.linear3 = Linear(hidden_size, output_size, weight_init_fn, learning_rate)
+        self.softmax = SoftMaxCrossEntropy()
+
+
 
     def forward(self, x: np.ndarray, y: int) -> Tuple[np.ndarray, float]:
         """
@@ -392,11 +394,24 @@ class NN:
                 a valid probability distribution over the classes.
             loss: the cross_entropy loss for a given example
         """
+
+        """
         a = self.linear1.forward(x) 
         z = self.l2_sigmoid.forward(a)
         b = self.linear2.forward(z) 
         y_hat, J = self.l4_softmax.forward(b, y)
 
+        return y_hat, J
+        """
+
+        a1 = self.linear1.forward(x)
+        z1 = self.sigmoid1.forward(a1)
+
+        a2 = self.linear2.forward(z1)
+        z2 = self.sigmoid2.forward(a2)
+
+        b = self.linear3.forward(z2)
+        y_hat, J = self.softmax.forward(b, y)
         return y_hat, J
 
     def backward(self, y: int, y_hat: np.ndarray) -> None:
@@ -407,11 +422,21 @@ class NN:
         :param y_hat: prediction with shape (num_classes,)
         """
         # call backward pass for each layer
+
+        """
         self.g_J = 1
         self.g_b = self.l4_softmax.backward(y, y_hat) 
         self.g_z = self.linear2.backward(self.g_b)
         self.g_a = self.l2_sigmoid.backward(self.g_z)
         self.g_x = self.linear1.backward(self.g_a) 
+        """
+
+        gb = self.softmax.backward(y, y_hat) 
+        gz2 = self.linear3.backward(gb) 
+        ga2 = self.sigmoid2.backward(gz2) 
+        gz1 = self.linear2.backward(ga2) 
+        ga1 = self.sigmoid1.backward(gz1) 
+        _ = self.linear1.backward(ga1) 
 
     def step(self):
         """
@@ -420,6 +445,8 @@ class NN:
         # call step for each relevant layer
         self.linear1.step() 
         self.linear2.step() 
+        
+        self.linear3.step()
 
     def compute_loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """

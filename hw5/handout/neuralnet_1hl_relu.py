@@ -377,7 +377,7 @@ class NN:
         # initialize modules (see section 9.1.2 of the writeup)
         #  Hint: use the classes you've implemented above!
         self.linear1 = Linear(input_size, hidden_size, weight_init_fn, learning_rate) 
-        self.l2_sigmoid = Sigmoid() 
+        self.l2_ReLU = ReLU() 
         self.linear2 = Linear(hidden_size, output_size, weight_init_fn, learning_rate) 
         self.l4_softmax = SoftMaxCrossEntropy() 
 
@@ -393,7 +393,7 @@ class NN:
             loss: the cross_entropy loss for a given example
         """
         a = self.linear1.forward(x) 
-        z = self.l2_sigmoid.forward(a)
+        z = self.l2_ReLU.forward(a)
         b = self.linear2.forward(z) 
         y_hat, J = self.l4_softmax.forward(b, y)
 
@@ -410,7 +410,7 @@ class NN:
         self.g_J = 1
         self.g_b = self.l4_softmax.backward(y, y_hat) 
         self.g_z = self.linear2.backward(self.g_b)
-        self.g_a = self.l2_sigmoid.backward(self.g_z)
+        self.g_a = self.l2_ReLU.backward(self.g_z)
         self.g_x = self.linear1.backward(self.g_a) 
 
     def step(self):
